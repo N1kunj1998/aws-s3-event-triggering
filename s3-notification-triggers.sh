@@ -6,7 +6,7 @@
 #
 # Version: v1
 #
-# This script will send email notifcation using s3 event triggering when ever a new file is uploaded
+# This script will send email notification using s3 event triggering when ever a new file is uploaded
 ##############################
 
 # Running script in debug mode
@@ -56,3 +56,62 @@ bucket_output=$(aws s3api create-bucket --bucket "$bucket_name" --region "$aws_r
 
 # Print the output from the variable
 echo "Bucket creation output: $bucket_output"
+
+# Upload a file to the bucket 
+aws s3 cp ./test_file.txt s3://"$bucket_name"/test_file.txt
+
+# Create a Zip file to upload Lambda Function
+zip -r s3-lambda-function.zip ./s3-lambda-function
+
+sleep 5
+
+# Create a Lambda function
+aws lambda create-function \
+    --region "$aws_region" \
+    --function-name $lambda_function_name \
+    --runtime "python3.8" \
+    --handler "s3-lambda-function/s3-lambda-function.lambda_handler" \
+    --memory-size 128 \
+    --timeout 30 \
+    --role "arn:aws:iam::$aws_account_id:role/$role_name" \
+    --zip-file "fileb://./s3-lambda-function.zip"
+
+# Add permission to S3 Bucket to invoke Lambda
+aws lambda add-permission \
+    --function-name "$lambda_function_name" \
+    --statement-id "s3-lambda-sns" \
+    --action "lambda:InvokeFunction" \
+    --principal s3.amazonaws.com \
+    --source-arn "arn:aws:s3:::$bucket_name"
+
+# Create an S3 event trigger for the Lambda function
+LambdaFunctionArn="arn:aws:lambda:us-east-1:$aws_account_id:function:s3-lambda-function"
+aws s3api put-bucket-notification-configuration \
+    --region "$aws_region" \
+    --bucket "$bucket_name" \
+    --notification-configuration '{
+        "LambdaFunctionConfigurations": [{
+            "LambdaFunctionArn": "'"$LambdaFunctionArn"'",
+            "Events" : ["s3:ObjectCreated:*"]
+        }]
+    }'
+
+# Create an SNS topic and save the topic ARN to variable
+topic_arn=$(aws sns create-topic --name s3-lambda-sns --output json | jq -r '.TopicArn')
+
+# Print the TopicArn
+echo "SNS Topic ARN: $topic_arn"
+
+# Trigger SNS Topic using lambda Function
+
+# Add SNS publish permission to the lambda Function
+aws sns subscribe \
+    --topic-arn "$topic_arn" \
+    --protocol email \
+    --notification-endpoint "$email_address"
+
+# Publish SNS
+aws sns publish \
+    --topic-arn "$topic_arn" \
+    --subject "A new object created in s3 bucket" \
+    --message "A new object has been created in Nikunj aws account in s3 bucket"
