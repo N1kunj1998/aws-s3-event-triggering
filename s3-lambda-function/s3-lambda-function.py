@@ -1,24 +1,10 @@
 import boto3
-import json
+client = boto3.client('sns')
 
 def lambda_handler(event, context):
-    # Extract relavent information from S3 event trigger
-    bucket_name = event['Records'][0]['s3']['bucket']['name']
     object_key = event['Records'][0]['s3']['object']['key']
-
-    # Perform desired operation with the uploaded file
-    print(f"File '{object_key}' was uploaded to bucket {bucket_name}")
-
-    # Example: Send a notification via SNS
-    sns_client = boto3.client('sns')
-    topic_arn = 'arn:asw:sns:us-east-1:<account-id>:s3-lambda-sns'
-    sns_client.publish(
-        TopicArn=topic_arn,
-        Subject='S3 Object Created',
-        Message=f"File '{object_key}' was uploaded to bucket '{bucket_name}'"
-    )
-
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Lambda function executed successfully')
-    }
+    bucket_name = event['Records'][0]['s3']['bucket']['name']
+    topic_arn = 'arn:aws:sns:us-east-1:695223721867:s3-lambda-sns'
+    message = 'new file created ' + object_key + ' in ' + bucket_name
+    subject = 'S3 object created'
+    client.publish(TopicArn=topic_arn,Message=message,Subject=subject)
