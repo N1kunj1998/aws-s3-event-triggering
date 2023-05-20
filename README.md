@@ -1,6 +1,6 @@
 # aws-s3-event-triggering
 
-<iframe src="https://drive.google.com/file/d/1FYqnfhgk44gaDFmVxUkjMh8-VDGJtZ0z/preview" width="640" height="480" allow="autoplay"></iframe>
+!["Workflow image"](https://drive.google.com/file/d/1FYqnfhgk44gaDFmVxUkjMh8-VDGJtZ0z/preview)
 
 ## Description
 The S3 Event Triggering Shell Scripting Project automates actions when a file is added to an S3 bucket. An S3 event triggers an AWS Lambda function, which executes a shell script using assigned IAM roles. After processing the file, the Lambda function can send an email notification via SNS. This project provides a scalable and efficient solution for handling file uploads and notifying users in real-time.
